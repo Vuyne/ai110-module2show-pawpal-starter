@@ -1,0 +1,73 @@
+classDiagram
+    %% PawPal+ final implementation overview
+
+    class Priority {
+        <<enumeration>>
+        LOW
+        MEDIUM
+        HIGH
+    }
+
+    class Owner {
+        +str name
+        +int available_minutes
+        +str day_start
+        +dict preferences
+        +list~Pet~ pets
+        +add_pet(pet) None
+        +set_preference(key, value) None
+    }
+
+    class Pet {
+        +str name
+        +str species
+        +list~Task~ tasks
+        +int task_count
+        +add_task(task) None
+        +remove_task(task) None
+    }
+
+    class Task {
+        +str title
+        +int duration_minutes
+        +Priority priority
+        +str recurrence
+        +int weekday
+        +time start_time
+        +str status
+        +str time_of_day
+        +str pet_name
+        +date due_date
+        +date next_due_date
+        +end_time() time
+        +priority_rank() int
+        +runs_on(weekday) bool
+        +mark_complete() Task|None
+    }
+
+    class Scheduler {
+        +Owner owner
+        +build_plan(pet, weekday) Plan
+        +sort_tasks(tasks) list~Task~
+        +sort_by_time(tasks) list~Task~
+        +filter_tasks(tasks, status, pet_name) list~Task~
+        +fits(task, remaining) bool
+        +has_conflict(task, scheduled) bool
+        +check_conflicts(tasks) list~str~
+        +explain(plan) str
+    }
+
+    class Plan {
+        +list~Task~ scheduled
+        +list~Task~ skipped
+        +int total_minutes
+        +str reasoning
+    }
+
+    Owner "1" *-- "0..*" Pet : owns
+    Pet "1" *-- "0..*" Task : contains
+    Task ..> Priority : uses
+    Scheduler --> Owner : reads constraints from
+    Scheduler ..> Pet : evaluates tasks for a pet
+    Scheduler ..> Task : sorts, filters, assigns, checks conflicts
+    Scheduler ..> Plan : produces

@@ -43,6 +43,8 @@ Together these changes made the classes work together more cleanly and made the 
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
 - How did you decide which constraints mattered most?
 
+The scheduler mainly considers the owner's available minutes, the start of the day, task priority, and task duration. It also uses task recurrence and preferred times to help present a sensible order for the day. I treated time and priority as the most important constraints because they directly affect whether a task can realistically fit into the owner’s routine and whether the schedule feels useful to a pet owner.
+
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
@@ -59,10 +61,14 @@ One tradeoff is that the scheduler currently checks for simple overlaps using st
 - How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
 - What kinds of prompts or questions were most helpful?
 
+The most effective AI features were code generation for small methods, targeted debugging help, and test drafting. I used the assistant to suggest implementations for sorting by time, filtering tasks, handling recurring completion, and writing pytest cases. The most helpful prompts were specific and contextual, such as asking for a lightweight conflict-checking strategy or a Pythonic way to sort strings in HH:MM format.
+
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
 - How did you evaluate or verify what the AI suggested?
+
+One example was when the AI suggested a very compact implementation for recurring task completion. I modified it so the system returned a new pending task object instead of only storing a date field, which kept the model behavior clearer and aligned with how the rest of the app uses tasks. I verified the suggestion by writing tests first and then checking that the resulting behavior matched the expected scheduler workflow.
 
 ---
 
@@ -73,10 +79,14 @@ One tradeoff is that the scheduler currently checks for simple overlaps using st
 - What behaviors did you test?
 - Why were these tests important?
 
+I tested task completion, recurrence, task-count behavior, time-based sorting, filtering by pet/status, and conflict detection for overlapping tasks. These tests were important because they cover the core scheduler behaviors that a pet owner would rely on in practice, especially when the app needs to present a clean and trustworthy plan.
+
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
 - What edge cases would you test next if you had more time?
+
+I am fairly confident in the current scheduler because the automated tests pass and the main demo behavior is consistent. If I had more time, I would add tests for more complex edge cases such as tasks that partially overlap, multiple pets with competing schedules, and recurring tasks that span different weekdays.
 
 ---
 
@@ -86,10 +96,16 @@ One tradeoff is that the scheduler currently checks for simple overlaps using st
 
 - What part of this project are you most satisfied with?
 
+I am most satisfied with how the scheduler evolved from a simple placeholder into a structured system that can sort tasks, filter them, detect conflicts, and handle recurring behavior in a testable way.
+
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
 
+I would improve the scheduling logic to support more flexible conflict handling and smarter task placement, such as moving a task to the next available slot instead of skipping it outright.
+
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+
+A key lesson was that strong AI collaboration works best when I stay in the role of lead architect: define the behavior clearly, ask for targeted suggestions, verify them with tests, and only accept changes that preserve a clean and understandable system design.

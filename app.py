@@ -109,18 +109,45 @@ else:
 st.divider()
 
 st.subheader("Build Schedule")
-st.caption("This button should call your scheduling logic once you implement it.")
+st.caption("Generate a simple plan using the scheduler's sort, filter, and conflict logic.")
 
 if st.button("Generate schedule"):
-    st.warning(
-        "Not implemented yet. Next step: create your scheduling logic (classes/functions) and call it here."
-    )
-    st.markdown(
-        """
-Suggested approach:
-1. Design your UML (draft).
-2. Create class stubs (no logic).
-3. Implement scheduling behavior.
-4. Connect your scheduler here and display results.
-"""
-    )
+    scheduler = Scheduler(owner)
+
+    if not owner.pets:
+        st.info("Add a pet before generating a schedule.")
+    else:
+        for pet in owner.pets:
+            pending_tasks = scheduler.filter_tasks(
+                scheduler.sort_by_time(pet.tasks),
+                status="pending",
+                pet_name=pet.name,
+            )
+            if pending_tasks:
+                st.success(f"{pet.name} has {len(pending_tasks)} pending tasks ready to review.")
+            else:
+                st.info(f"{pet.name} has no pending tasks.")
+
+            if pending_tasks:
+                task_table = [
+                    {
+                        "title": task.title,
+                        "time": task.time_of_day or "TBD",
+                        "duration": task.duration_minutes,
+                        "priority": task.priority.name.lower(),
+                        "status": task.status,
+                    }
+                    for task in pending_tasks
+                ]
+                st.table(task_table)
+
+        conflict_warnings = []
+        for pet in owner.pets:
+            conflict_warnings.extend(scheduler.check_conflicts(pet.tasks))
+
+        if conflict_warnings:
+            st.warning("Potential scheduling conflicts detected:")
+            for warning in conflict_warnings:
+                st.write(f"- {warning}")
+        else:
+            st.success("No task conflicts detected.")

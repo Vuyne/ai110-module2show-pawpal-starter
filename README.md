@@ -106,14 +106,54 @@ Confidence Level: ★★★★★
 | Conflict detection logic | `Scheduler.check_conflicts()` | Detects overlapping scheduled tasks and returns a lightweight warning message instead of crashing. |
 | Recurring task logic | `Task.mark_complete()` | When a daily or weekly task is completed, the task records the next due date using `timedelta`. |
 
-## 📸 Demo Walkthrough
+## 🎬 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+PawPal+ combines a simple Streamlit interface with a scheduler backend that helps a pet owner organize care tasks for the day.
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+### Main UI features
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+- Add and manage pets for the owner.
+- Add tasks with a title, duration, priority, and optional preferred time.
+- View pending tasks in a cleaned-up, table-style layout.
+- Generate a schedule view that shows sorted tasks and any conflict warnings.
+
+### Example workflow
+
+1. Open the app and enter an owner name.
+2. Add a pet such as Mochi or Biscuit.
+3. Add one or more tasks for that pet, for example a morning feed or evening walk.
+4. Click Generate schedule to view the pending tasks in time order.
+5. If two tasks overlap, the scheduler reports a warning so the owner can resolve the conflict.
+
+### Scheduler behaviors shown in the demo
+
+- Sorting by time using `Scheduler.sort_by_time()`.
+- Filtering to pending tasks for the selected pet using `Scheduler.filter_tasks()`.
+- Conflict warnings for overlapping tasks using `Scheduler.check_conflicts()`.
+- Recurring task progression through `Task.mark_complete()` for daily and weekly tasks.
+
+### Sample CLI output
+
+```text
+============================================
+  Today's Schedule — Wednesday
+  Owner: Jordan  |  Budget: 90 min
+============================================
+
+Biscuit (dog)
+--------------------------------------------
+Sorted by time:
+  08:00  Morning feed [high]
+  14:00  Bath [low]
+  18:30  Evening walk [medium]
+  Total visible tasks: 3
+
+Mochi (cat)
+--------------------------------------------
+Sorted by time:
+  07:30  Feeding [high]
+  12:00  Litter cleaning [medium]
+  17:00  Laser play [low]
+  Total visible tasks: 3
+============================================
+```
