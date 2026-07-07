@@ -61,13 +61,38 @@ class Task:
         # "daily" and "once" are both eligible for any given day's plan.
         return True
 
-    def mark_complete(self) -> None:
-        """Mark the task as complete and schedule the next occurrence if recurring."""
+    def mark_complete(self) -> Task | None:
+        """Mark the task as complete and return a new pending task for the next occurrence if recurring."""
         self.status = "complete"
         if self.recurrence == "daily" and self.due_date is not None:
-            self.next_due_date = self.due_date + timedelta(days=1)
-        elif self.recurrence == "weekly" and self.due_date is not None:
-            self.next_due_date = self.due_date + timedelta(days=7)
+            next_due_date = self.due_date + timedelta(days=1)
+            self.next_due_date = next_due_date
+            return Task(
+                title=self.title,
+                duration_minutes=self.duration_minutes,
+                priority=self.priority,
+                recurrence=self.recurrence,
+                weekday=self.weekday,
+                status="pending",
+                time_of_day=self.time_of_day,
+                pet_name=self.pet_name,
+                due_date=next_due_date,
+            )
+        if self.recurrence == "weekly" and self.due_date is not None:
+            next_due_date = self.due_date + timedelta(days=7)
+            self.next_due_date = next_due_date
+            return Task(
+                title=self.title,
+                duration_minutes=self.duration_minutes,
+                priority=self.priority,
+                recurrence=self.recurrence,
+                weekday=self.weekday,
+                status="pending",
+                time_of_day=self.time_of_day,
+                pet_name=self.pet_name,
+                due_date=next_due_date,
+            )
+        return None
 
 
 @dataclass

@@ -72,19 +72,30 @@ Mochi (cat)
 
 ## 🧪 Testing PawPal+
 
+Run the full automated test suite with:
+
 ```bash
-# Run the full test suite:
-pytest
-
-# Run with coverage:
-pytest --cov
+python -m pytest
 ```
 
-Sample test output:
+These tests cover the core scheduling behaviors in the system, including task completion, recurrence, sorting by time, filtering by pet/status, and conflict detection for overlapping tasks.
 
+Successful test run output:
+
+```text
+============================= test session starts ==============================
+platform win32 -- Python 3.13.3, pytest-9.0.3, pluggy-1.6.0
+rootdir: C:\Users\vykha\Desktop\Python\CodePath\ai110-module2show-pawpal-starter
+plugins: anyio-4.10.0, typeguard-4.4.2
+collected 10 items
+
+tests\test_pawpal.py ...                                                 [ 30%]
+tests\test_pawpal_system.py .......                                      [100%]
+
+============================== 10 passed in 0.03s ==============================
 ```
-# Paste your pytest output here
-```
+
+Confidence Level: ★★★★★
 
 ## 📐 Smarter Scheduling
 
