@@ -1,14 +1,30 @@
-"""PawPal+ — class skeletons.
+"""PawPal+ — core implementation.
 
-Generated from diagrams/uml.mmd. Stubs only: attributes and method
-signatures are defined, but the scheduling logic is intentionally left
-for you to implement. Each method raises NotImplementedError so tests
-fail loudly until you fill them in.
+Data model (Owner, Pet, Task) plus the scheduling logic (Scheduler).
+See diagrams/uml.mmd for the class diagram this mirrors.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date, datetime, time, timedelta
+from enum import IntEnum
+
+
+class Priority(IntEnum):
+    """Task priority. IntEnum so HIGH > MEDIUM > LOW sorts for free."""
+
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+
+
+def _parse_time(value: str | time) -> time:
+    """Accept a 'HH:MM' string or a time and return a time."""
+    if isinstance(value, time):
+        return value
+    hours, minutes = value.split(":")
+    return time(int(hours), int(minutes))
 
 
 @dataclass
@@ -17,13 +33,33 @@ class Task:
 
     title: str
     duration_minutes: int
-    priority: str = "medium"          # "low" | "medium" | "high"
-    recurrence: str = "daily"         # "daily" | "weekly" | "once"
-    start_time: str | None = None     # assigned by the Scheduler, e.g. "08:00"
+    priority: Priority = Priority.MEDIUM
+    recurrence: str = "daily"          # "daily" | "weekly" | "once"
+    weekday: int | None = None         # 0=Mon..6=Sun; used when recurrence == "weekly"
+    start_time: time | None = None     # assigned by the Scheduler once placed
+    status: str = "pending"
+
+    def end_time(self) -> time:
+        """Return start_time + duration_minutes (requires start_time set)."""
+        if self.start_time is None:
+            raise ValueError("Task has no start_time yet; schedule it first.")
+        anchor = datetime.combine(date.min, self.start_time)
+        return (anchor + timedelta(minutes=self.duration_minutes)).time()
 
     def priority_rank(self) -> int:
         """Return a sortable number so higher priority sorts first."""
-        raise NotImplementedError
+        return int(self.priority)
+
+    def runs_on(self, weekday: int) -> bool:
+        """Return True if this task should appear in the plan for `weekday`."""
+        if self.recurrence == "weekly":
+            return self.weekday == weekday
+        # "daily" and "once" are both eligible for any given day's plan.
+        return True
+
+    def mark_complete(self) -> None:
+        """Mark the task as complete."""
+        self.status = "complete"
 
 
 @dataclass
@@ -31,30 +67,40 @@ class Pet:
     """An animal that has care tasks."""
 
     name: str
-    species: str = "dog"              # "dog" | "cat" | "other"
+    species: str = "dog"               # "dog" | "cat" | "other"
     tasks: list[Task] = field(default_factory=list)
 
+    @property
+    def task_count(self) -> int:
+        """Return the number of tasks assigned to this pet."""
+        return len(self.tasks)
+
     def add_task(self, task: Task) -> None:
-        raise NotImplementedError
+        """Add a task to this pet's care list."""
+        self.tasks.append(task)
 
     def remove_task(self, task: Task) -> None:
-        raise NotImplementedError
+        """Remove a task from this pet's care list."""
+        self.tasks.remove(task)
 
 
 @dataclass
 class Owner:
-    """The person planning care for one or more pets."""
+    """The person planning care. Single source of truth for constraints."""
 
     name: str
     available_minutes: int = 120
+    day_start: str = "08:00"           # when the day's plan begins
     preferences: dict = field(default_factory=dict)
     pets: list[Pet] = field(default_factory=list)
 
     def add_pet(self, pet: Pet) -> None:
-        raise NotImplementedError
+        """Add a pet to this owner's profile."""
+        self.pets.append(pet)
 
     def set_preference(self, key: str, value) -> None:
-        raise NotImplementedError
+        """Store a preference for this owner."""
+        self.preferences[key] = value
 
 
 @dataclass
@@ -68,24 +114,69 @@ class Plan:
 
 
 class Scheduler:
-    """Builds a daily plan from a pet's tasks within a time budget."""
+    """Builds a daily plan from a pet's tasks within the owner's constraints."""
 
-    def __init__(self, available_minutes: int = 120, start_time: str = "08:00") -> None:
-        self.available_minutes = available_minutes
-        self.start_time = start_time
+    def __init__(self, owner: Owner) -> None:
+        """Initialize the scheduler with an owner context."""
+        # Constraints come from the owner, so there is one source of truth.
+        self.owner = owner
 
-    def build_plan(self, pet: Pet) -> Plan:
-        """Sort, fit, and time tasks into a Plan for the given pet."""
-        raise NotImplementedError
+    def build_plan(self, pet: Pet, weekday: int) -> Plan:
+        """Filter to today's tasks, sort, fit, assign times, and return a Plan."""
+        todays_tasks = [t for t in pet.tasks if t.runs_on(weekday)]
+        ordered = self.sort_tasks(todays_tasks)
+
+        plan = Plan()
+        remaining = self.owner.available_minutes
+        cursor = datetime.combine(date.min, _parse_time(self.owner.day_start))
+
+        for task in ordered:
+            task.start_time = cursor.time()
+            if self.fits(task, remaining) and not self.has_conflict(task, plan.scheduled):
+                plan.scheduled.append(task)
+                plan.total_minutes += task.duration_minutes
+                remaining -= task.duration_minutes
+                cursor += timedelta(minutes=task.duration_minutes)
+            else:
+                task.start_time = None  # not placed; clear the tentative time
+                plan.skipped.append(task)
+
+        plan.reasoning = self.explain(plan)
+        return plan
 
     def sort_tasks(self, tasks: list[Task]) -> list[Task]:
-        """Return tasks ordered by scheduling preference (priority, then duration)."""
-        raise NotImplementedError
+        """Order by priority (desc), then shorter duration as a tie-breaker."""
+        return sorted(
+            tasks,
+            key=lambda t: (-t.priority_rank(), t.duration_minutes),
+        )
 
     def fits(self, task: Task, remaining: int) -> bool:
-        """Return True if the task fits in the remaining minutes."""
-        raise NotImplementedError
+        """Return True if the task fits in the remaining minute budget."""
+        return task.duration_minutes <= remaining
+
+    def has_conflict(self, task: Task, scheduled: list[Task]) -> bool:
+        """Return True if task's time range overlaps any already-scheduled task."""
+        for other in scheduled:
+            if task.start_time < other.end_time() and other.start_time < task.end_time():
+                return True
+        return False
 
     def explain(self, plan: Plan) -> str:
         """Return a human-readable explanation of why the plan looks as it does."""
-        raise NotImplementedError
+        lines = [
+            f"Scheduled {len(plan.scheduled)} task(s) using "
+            f"{plan.total_minutes} of {self.owner.available_minutes} available minutes."
+        ]
+        for task in plan.scheduled:
+            lines.append(
+                f"  {task.start_time.strftime('%H:%M')} — {task.title} "
+                f"({task.duration_minutes} min) [priority: {task.priority.name.lower()}]"
+            )
+        if plan.skipped:
+            lines.append(
+                f"Skipped {len(plan.skipped)} task(s) that did not fit or conflicted: "
+                + ", ".join(t.title for t in plan.skipped)
+                + "."
+            )
+        return "\n".join(lines)
