@@ -44,14 +44,30 @@ pip install -r requirements.txt
 
 ## 🖥️ Sample Output
 
-Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
+Output from running `python main.py`:
 
 ```
-# e.g.:
-# Daily plan for Biscuit (Golden Retriever):
-#   08:00 — Morning walk (30 min) [priority: high]
-#   09:00 — Feeding (10 min) [priority: high]
-#   ...
+============================================
+  Today's Schedule — Wednesday
+  Owner: Jordan  |  Budget: 90 min
+============================================
+
+Biscuit (dog)
+--------------------------------------------
+  08:00  Feeding             10 min  [high]
+  08:10  Morning walk        30 min  [high]
+  08:40  Fetch / play        20 min  [medium]
+  Total: 60 min
+  Skipped (no time / conflict): Bath
+
+Mochi (cat)
+--------------------------------------------
+  08:00  Feeding             10 min  [high]
+  08:10  Litter cleaning     15 min  [medium]
+  08:25  Laser play          15 min  [low]
+  Total: 40 min
+
+============================================
 ```
 
 ## 🧪 Testing PawPal+
@@ -72,14 +88,12 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Sorting behavior | `Scheduler.sort_by_time()` | Sorts tasks by their preferred `time_of_day` value so the day starts in a natural order. |
+| Filtering behavior | `Scheduler.filter_tasks()` | Filters tasks by completion status and pet name so pending tasks for a specific pet are easy to view. |
+| Conflict detection logic | `Scheduler.check_conflicts()` | Detects overlapping scheduled tasks and returns a lightweight warning message instead of crashing. |
+| Recurring task logic | `Task.mark_complete()` | When a daily or weekly task is completed, the task records the next due date using `timedelta`. |
 
 ## 📸 Demo Walkthrough
 

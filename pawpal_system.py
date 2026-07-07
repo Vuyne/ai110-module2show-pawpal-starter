@@ -38,6 +38,10 @@ class Task:
     weekday: int | None = None         # 0=Mon..6=Sun; used when recurrence == "weekly"
     start_time: time | None = None     # assigned by the Scheduler once placed
     status: str = "pending"
+    time_of_day: str | None = None     # preferred time for display/sorting, e.g. "08:30"
+    pet_name: str | None = None        # optional pet label for filtering
+    due_date: date | None = None       # current occurrence date for recurring tasks
+    next_due_date: date | None = None  # next occurrence date after completion
 
     def end_time(self) -> time:
         """Return start_time + duration_minutes (requires start_time set)."""
@@ -58,8 +62,12 @@ class Task:
         return True
 
     def mark_complete(self) -> None:
-        """Mark the task as complete."""
+        """Mark the task as complete and schedule the next occurrence if recurring."""
         self.status = "complete"
+        if self.recurrence == "daily" and self.due_date is not None:
+            self.next_due_date = self.due_date + timedelta(days=1)
+        elif self.recurrence == "weekly" and self.due_date is not None:
+            self.next_due_date = self.due_date + timedelta(days=7)
 
 
 @dataclass
@@ -151,6 +159,28 @@ class Scheduler:
             key=lambda t: (-t.priority_rank(), t.duration_minutes),
         )
 
+    def sort_by_time(self, tasks: list[Task]) -> list[Task]:
+        """Sort tasks by preferred time using a time-based lambda key."""
+        return sorted(tasks, key=lambda task: _parse_time(task.time_of_day or "23:59"))
+
+    def filter_tasks(
+        self,
+        tasks: list[Task],
+        status: str | None = None,
+        pet_name: str | None = None,
+    ) -> list[Task]:
+        """Return tasks that match the provided status and pet-name filters."""
+        filtered = list(tasks)
+        if status is not None:
+            filtered = [task for task in filtered if task.status.lower() == status.lower()]
+        if pet_name is not None:
+            filtered = [
+                task
+                for task in filtered
+                if (task.pet_name or "").lower() == pet_name.lower()
+            ]
+        return filtered
+
     def fits(self, task: Task, remaining: int) -> bool:
         """Return True if the task fits in the remaining minute budget."""
         return task.duration_minutes <= remaining
@@ -161,6 +191,19 @@ class Scheduler:
             if task.start_time < other.end_time() and other.start_time < task.end_time():
                 return True
         return False
+
+    def check_conflicts(self, tasks: list[Task]) -> list[str]:
+        """Return lightweight warning messages for overlapping tasks."""
+        warnings: list[str] = []
+        for index, task in enumerate(tasks):
+            for other in tasks[index + 1 :]:
+                if task.start_time is None or other.start_time is None:
+                    continue
+                if task.start_time < other.end_time() and other.start_time < task.end_time():
+                    warnings.append(
+                        f"Warning: '{task.title}' overlaps with '{other.title}' at {task.start_time.strftime('%H:%M')}."
+                    )
+        return warnings
 
     def explain(self, plan: Plan) -> str:
         """Return a human-readable explanation of why the plan looks as it does."""
